@@ -77,7 +77,7 @@ def download_latest_by_name(name):
         fail_log.error('{} failed {}\n'.format(name, e))
         return
 
-def handle_json_download(raw_filename, cut_all=None, cut_cur=None):
+def handle_json_download(raw_filename, finished_list=None, cut_all=None, cut_cur=None):
     """
     generate csv by raw file
     """
@@ -108,6 +108,9 @@ def handle_json_download(raw_filename, cut_all=None, cut_cur=None):
             version_number = get_latest_version(package_name)
             print("link: {} version: {}".format(download_link, version_number))
             """
+            if finished_list and package_name in finished_list:
+                print("skip {}".format(package_name))
+                continue
             try:
                 download_latest_by_name(package_name)
                 #download_package(package_name, version_number)
@@ -132,20 +135,33 @@ def handle_csv_downlaod(filename):
                 fail_log.info('failed to parse npm package')
             download_package(package_name, package_version)
 
+def read_list(file_name):
+    """
+    read a list of names from a file
+    """
+    with open(file_name, 'r') as fp:
+        package_list = [line.strip() for line in fp.readlines()]
+    return package_list
+
 def main():
     parser = argparse.ArgumentParser(
         description='Process some integers.')
     parser.add_argument('-f', help='csv file')
+    parser.add_argument('-s', help='successfully finished packages')
     parser.add_argument('-r', help='raw file')
     parser.add_argument('-c', help='cut into n parts')
     parser.add_argument('-i', help='this thread is the ith part')
     args = parser.parse_args()
     filename = args.f  # "./test.csv"
     raw_filename = args.r
+    finished_list = None
+
+    if args.s:
+        finished_list = read_list(args.s)
 
     if raw_filename:
         if args.c is not None:
-            handle_json_download(raw_filename, cut_all=int(args.c), cut_cur=int(args.i))
+            handle_json_download(raw_filename, finished_list=finished_list, cut_all=int(args.c), cut_cur=int(args.i))
     else:
         handle_csv_downlaod(filename)
 
